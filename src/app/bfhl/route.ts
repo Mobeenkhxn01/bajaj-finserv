@@ -1,10 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 
-export async function GET(requrest: NextRequest) {
+export async function GET() {
   return NextResponse.json(
-    {
-      operation_code: 1,
-    },
+    { operation_code: 1 },
     { status: 200 }
   );
 }
@@ -13,19 +11,40 @@ export async function POST(request: NextRequest) {
   try {
     const { data } = await request.json();
 
-    const numbers = data.filter((item: number) => !isNaN(item));
-    const alphabets = data.filter((item: string) => /^[a-zA-Z]$/.test(item));
-
-    let highest_alphabet: string[] = [];
-    if (alphabets.length > 0) {
-      const highest = alphabets.reduce(
-        (
-          max: { toLowerCase: () => number },
-          current: { toLowerCase: () => number }
-        ) => (current.toLowerCase() > max.toLowerCase() ? current : max)
+    if (!Array.isArray(data)) {
+      return NextResponse.json(
+        { is_success: false, message: "Invalid input. Expected an array of characters or numbers." },
+        { status: 400 }
       );
-      highest_alphabet = [highest];
     }
+
+    const numbers: number[] = [];
+    const alphabets: string[] = [];
+    const invalidItems: string[] = [];
+
+    data.forEach((item) => {
+      if (typeof item === "string" && /^[a-zA-Z]$/.test(item)) {
+        alphabets.push(item);
+      } else if (typeof item === "number") {
+        numbers.push(item);
+      } else {
+        invalidItems.push(String(item));
+      }
+    });
+
+    if (invalidItems.length > 0) {
+      return NextResponse.json(
+        {
+          is_success: false,
+          message: `Invalid input detected: ${invalidItems.join(", ")}`,
+        },
+        { status: 400 }
+      );
+    }
+
+    const highest_alphabet: string[] = alphabets.length > 0
+      ? [alphabets.reduce((max, current) => (current.toLowerCase() > max.toLowerCase() ? current : max))]
+      : [];
 
     return NextResponse.json({
       is_success: true,
@@ -36,13 +55,10 @@ export async function POST(request: NextRequest) {
       alphabets,
       highest_alphabet,
     });
-  } catch (error: any) {
+  } catch {
     return NextResponse.json(
-      {
-        is_success: false,
-        message: "Some thing went wrong!",
-      },
-      { status: 200 }
+      { is_success: false, message: "Something went wrong!" },
+      { status: 500 }
     );
   }
 }

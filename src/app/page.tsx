@@ -14,40 +14,43 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { MultiSelect } from "@/components/ui/multi-select";
-import { Cat, Dog, Turtle } from "lucide-react";
 
 const frameworksList = [
-  { value: "alphabets", label: "Alphabets", icon: Turtle },
-  { value: "higher", label: "Highest Alphabet", icon: Cat },
-  { value: "number", label: "Numbers", icon: Dog },
+  { value: "alphabets", label: "Alphabets" },
+  { value: "higher", label: "Highest Alphabet" },
+  { value: "number", label: "Numbers" },
 ];
 
 const formSchema = z.object({
   inputData: z.string().min(1, "Input cannot be empty"),
 });
 
+type ApiResponse = {
+  numbers: number[];
+  alphabets: string[];
+  highest_alphabet: string[];
+};
+
 export default function Home() {
-  const [responseData, setResponseData] = useState<any>(null);
+  const [responseData, setResponseData] = useState<ApiResponse | null>(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState<string | null>(null);
   const [selectedFilters, setSelectedFilters] = useState<string[]>([]);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
-    defaultValues: {
-      inputData: "",
-    },
+    defaultValues: { inputData: "" },
   });
 
   const onSubmit = async (values: { inputData: string }) => {
     setLoading(true);
-    setError("");
+    setError(null);
 
     try {
-      // Convert input string into an array of numbers and letters
-      const dataArray = values.inputData.split("").map((char) =>
-        isNaN(Number(char)) ? char : Number(char)
-      );
+      const dataArray = values.inputData
+        .split("")
+        .filter((char) => char.trim() !== "")
+        .map((char) => (isNaN(Number(char)) ? char : Number(char)));
 
       const response = await fetch("/bfhl", {
         method: "POST",
@@ -55,12 +58,15 @@ export default function Home() {
         body: JSON.stringify({ data: dataArray }),
       });
 
-      const result = await response.json();
+      if (!response.ok) throw new Error("Failed to fetch data.");
+
+      const result: ApiResponse = await response.json();
       setResponseData(result);
-    } catch (err) {
+    } catch {
       setError("Failed to fetch data. Please try again.");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (
@@ -68,11 +74,7 @@ export default function Home() {
       <h1 className="text-xl font-bold mb-4">Bajaj Finserv Health Limited</h1>
 
       <Form {...form}>
-        <form
-          onSubmit={form.handleSubmit(onSubmit)}
-          className="flex flex-col gap-4"
-        >
-          {/* Input Field */}
+        <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-4">
           <FormField
             control={form.control}
             name="inputData"
@@ -86,17 +88,14 @@ export default function Home() {
             )}
           />
 
-          {/* Multi-Select Filters */}
-          <div className="p-4 max-w-xl">
-            <MultiSelect
-              options={frameworksList}
-              onValueChange={setSelectedFilters}
-              placeholder="Select Filters"
-              variant="inverted"
-              animation={2}
-              maxCount={3}
-            />
-          </div>
+          <MultiSelect
+            options={frameworksList}
+            onValueChange={setSelectedFilters}
+            placeholder="Select Filters"
+            variant="inverted"
+            animation={2}
+            maxCount={3}
+          />
 
           <Button type="submit" disabled={loading}>
             {loading ? "Processing..." : "Submit"}
@@ -104,7 +103,6 @@ export default function Home() {
         </form>
       </Form>
 
-      {/* Display API Response */}
       {error && <p className="text-red-500 mt-4">{error}</p>}
 
       {responseData && (
@@ -113,20 +111,17 @@ export default function Home() {
           <ul className="list-disc pl-5">
             {selectedFilters.includes("alphabets") && (
               <li>
-                <strong>Alphabets:</strong>{" "}
-                {responseData.alphabets?.join(", ") || "N/A"}
+                <strong>Alphabets:</strong> {responseData.alphabets?.join(", ") || "N/A"}
               </li>
             )}
             {selectedFilters.includes("higher") && (
               <li>
-                <strong>Highest Alphabet:</strong>{" "}
-                {responseData.highest_alphabet?.join(", ") || "N/A"}
+                <strong>Highest Alphabet:</strong> {responseData.highest_alphabet?.join(", ") || "N/A"}
               </li>
             )}
             {selectedFilters.includes("number") && (
               <li>
-                <strong>Numbers:</strong>{" "}
-                {responseData.numbers?.join(", ") || "N/A"}
+                <strong>Numbers:</strong> {responseData.numbers?.join(", ") || "N/A"}
               </li>
             )}
           </ul>
