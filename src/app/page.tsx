@@ -1,10 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
+import { MultiSelect } from "@/components/ui/multi-select";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import {
   Form,
   FormControl,
@@ -13,7 +11,11 @@ import {
   FormLabel,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { MultiSelect } from "@/components/ui/multi-select";
+import { zodResolver } from "@hookform/resolvers/zod";
+import axios from "axios";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
 
 const frameworksList = [
   { value: "alphabets", label: "Alphabets" },
@@ -42,91 +44,95 @@ export default function Home() {
     defaultValues: { inputData: "" },
   });
 
-  const onSubmit = async (values: { inputData: string }) => {
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setLoading(true);
     setError(null);
+    setResponseData(null);
 
-    try {
-      const dataArray = values.inputData
-        .split("")
-        .filter((char) => char.trim() !== "")
-        .map((char) => (isNaN(Number(char)) ? char : Number(char)));
-
-      const response = await fetch("/bfhl", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ data: dataArray }),
+    const response = await axios
+      .post("/bfhl", values.inputData)
+      .then((response) => {
+        setResponseData(response.data);
+      })
+      .catch((error: any) => {
+        setError(error.response?.data.message);
+      })
+      .finally(() => {
+        setLoading(false);
       });
 
-      if (!response.ok) throw new Error("Failed to fetch data.");
-
-      const result: ApiResponse = await response.json();
-      setResponseData(result);
-    } catch {
-      setError("Failed to fetch data. Please try again.");
-    } finally {
-      setLoading(false);
-    }
+    console.log(response);
   };
 
   return (
-    <div className="w-full max-w-md mx-auto p-4">
-      <h1 className="text-xl font-bold mb-4">Bajaj Finserv Health Limited</h1>
+    <div className="min-h-screen justify-center items-center w-full">
+      <Card className="w-2/3 p-6 ">
+        <h1 className="text-xl font-bold mb-4">Bajaj Finserv Health Limited</h1>
 
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-4">
-          <FormField
-            control={form.control}
-            name="inputData"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Enter Data</FormLabel>
-                <FormControl>
-                  <Input placeholder="Enter letters and numbers" {...field} />
-                </FormControl>
-              </FormItem>
-            )}
-          />
+        <Form {...form}>
+          <form
+            onSubmit={form.handleSubmit(onSubmit)}
+            className="flex flex-col gap-4"
+          >
+            <FormField
+              control={form.control}
+              name="inputData"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Enter Data</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Enter letters and numbers" {...field} />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
 
-          <MultiSelect
-            options={frameworksList}
-            onValueChange={setSelectedFilters}
-            placeholder="Select Filters"
-            variant="inverted"
-            animation={2}
-            maxCount={3}
-          />
+            <MultiSelect
+              options={frameworksList}
+              onValueChange={setSelectedFilters}
+              placeholder="Select Filters"
+              variant="inverted"
+              animation={2}
+              maxCount={3}
+            />
 
-          <Button type="submit" disabled={loading}>
-            {loading ? "Processing..." : "Submit"}
-          </Button>
-        </form>
-      </Form>
+            <Button type="submit" disabled={loading}>
+              {loading ? "Processing..." : "Submit"}
+            </Button>
+          </form>
+        </Form>
 
-      {error && <p className="text-red-500 mt-4">{error}</p>}
+        {error && <p className="text-red-500 mt-4">{error}</p>}
 
-      {responseData && (
-        <div className="mt-4 p-4 border rounded bg-gray-100">
-          <h2 className="font-bold">Filtered Response:</h2>
-          <ul className="list-disc pl-5">
-            {selectedFilters.includes("alphabets") && (
-              <li>
-                <strong>Alphabets:</strong> {responseData.alphabets?.join(", ") || "N/A"}
-              </li>
-            )}
-            {selectedFilters.includes("higher") && (
-              <li>
-                <strong>Highest Alphabet:</strong> {responseData.highest_alphabet?.join(", ") || "N/A"}
-              </li>
-            )}
-            {selectedFilters.includes("number") && (
-              <li>
-                <strong>Numbers:</strong> {responseData.numbers?.join(", ") || "N/A"}
-              </li>
-            )}
-          </ul>
-        </div>
-      )}
+        {responseData && (
+          <div className="mt-4 p-4 border rounded bg-gray-100">
+            <h2 className="font-bold">Filtered Response:</h2>
+            <ul className="list-disc pl-5">
+              {selectedFilters.length === 0 && (
+                <p>Please select a field to show.</p>
+              )}
+              {selectedFilters.includes("alphabets") && (
+                <li>
+                  <strong>Alphabets:</strong>{" "}
+                  {responseData.alphabets?.join(", ") || "N/A"}
+                </li>
+              )}
+              {selectedFilters.includes("higher") && (
+                <li>
+                  <strong>Highest Alphabet:</strong>{" "}
+                  {responseData.highest_alphabet?.join(", ") || "N/A"}
+                </li>
+              )}
+              {selectedFilters.includes("number") && (
+                <li>
+                  <strong>Numbers:</strong>{" "}
+                  {responseData.numbers?.join(", ") || "N/A"}
+                </li>
+              )}
+            </ul>
+          </div>
+        )}
+      </Card>
     </div>
   );
 }
