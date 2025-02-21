@@ -2,7 +2,6 @@
 
 import { MultiSelect } from "@/components/ui/multi-select";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import {
   Form,
   FormControl,
@@ -65,8 +64,8 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen justify-center items-center w-full">
-      <Card className="w-2/3 p-6 ">
+    <div className="min-h-screen flex justify-center  w-full items-center">
+      <div className=" p-6 w-2/3 border-2 rounded-md">
         <h1 className="text-xl font-bold mb-4">Bajaj Finserv Health Limited</h1>
 
         <Form {...form}>
@@ -132,7 +131,7 @@ export default function Home() {
             </ul>
           </div>
         )}
-      </Card>
+      </div>
     </div>
   );
 }
